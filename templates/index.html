@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Celina's Job Toolkit</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Celina's Job Toolkit</h1>
+            <p>One input. One click. Everything you need.</p>
+        </div>
+
+        <!-- Smart Input -->
+        <div class="card input-section">
+            <div class="smart-input-row">
+                <input type="text" id="smart-input"
+                    placeholder="Paste a job URL, type &quot;Product Manager at Google&quot;, or just a company name"
+                    autocomplete="off">
+                <button id="go-btn" class="btn btn-go" onclick="go()">Go</button>
+            </div>
+            <div class="input-hints">
+                <span>Try: <code>https://jobs.lever.co/stripe/...</code></span>
+                <span><code>Software Engineer at Spotify</code></span>
+                <span><code>Datadog</code></span>
+            </div>
+
+            <!-- Advanced -->
+            <button type="button" id="advanced-toggle" class="advanced-toggle" onclick="toggleAdvanced()">
+                <span class="arrow" id="adv-arrow">&#9654;</span>
+                <span>API Keys (optional)</span>
+            </button>
+            <div id="advanced-content" class="advanced-content">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="openai-key">OpenAI Key</label>
+                        <input type="password" id="openai-key" placeholder="sk-... (for AI cover letters)">
+                    </div>
+                    <div class="form-group">
+                        <label for="hunter-key">Hunter.io Key</label>
+                        <input type="password" id="hunter-key" placeholder="For verified emails">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pipeline Progress -->
+        <div id="pipeline" class="pipeline hidden">
+            <div class="pipeline-steps">
+                <div class="step" data-step="parsing"><div class="step-dot"></div><span>Parsing</span></div>
+                <div class="step-line"></div>
+                <div class="step" data-step="scraping"><div class="step-dot"></div><span>Scraping</span></div>
+                <div class="step-line"></div>
+                <div class="step" data-step="analyzing"><div class="step-dot"></div><span>Analyzing</span></div>
+                <div class="step-line"></div>
+                <div class="step" data-step="searching"><div class="step-dot"></div><span>Finding People</span></div>
+                <div class="step-line"></div>
+                <div class="step" data-step="researching"><div class="step-dot"></div><span>Research</span></div>
+                <div class="step-line"></div>
+                <div class="step" data-step="generating"><div class="step-dot"></div><span>Generating</span></div>
+            </div>
+            <p id="pipeline-message" class="pipeline-message">Starting...</p>
+        </div>
+
+        <!-- Results (flat, no tabs — sections appear as SSE events arrive) -->
+        <div id="results" class="results hidden">
+
+            <!-- Job Summary -->
+            <div id="section-job" class="result-section hidden">
+                <div id="job-summary" class="job-summary"></div>
+            </div>
+
+            <!-- Email Domain Verification -->
+            <div id="section-mx" class="mx-badge-container hidden"></div>
+
+            <!-- People Found -->
+            <div id="section-people" class="result-section hidden">
+                <div class="section-header">
+                    <h2>People Found <span id="people-counter" class="counter">0</span></h2>
+                    <button class="btn btn-export" onclick="downloadCSV()">Download CSV</button>
+                </div>
+                <div id="people-list" class="people-list"></div>
+            </div>
+
+            <!-- Company Research -->
+            <div id="section-research" class="result-section hidden">
+                <h2>Company Intel</h2>
+                <div id="company-research"></div>
+            </div>
+
+            <!-- Cover Letter -->
+            <div id="section-cover" class="result-section hidden">
+                <div class="section-header">
+                    <h2>Cover Letter</h2>
+                    <button class="btn btn-copy" onclick="copyText(this, document.getElementById('cover-text').textContent)">Copy</button>
+                </div>
+                <div id="cover-text" class="cover-letter-box"></div>
+            </div>
+
+            <!-- Email Patterns -->
+            <div id="section-email-patterns" class="result-section hidden">
+                <h2>Email Patterns</h2>
+                <div id="email-patterns"></div>
+            </div>
+
+            <!-- Interview Prep (collapsed by default) -->
+            <div id="section-interview" class="result-section hidden">
+                <div class="section-header clickable" onclick="toggleSection('interview-content')">
+                    <h2>Interview Prep</h2>
+                    <span class="arrow" id="interview-arrow">&#9654;</span>
+                </div>
+                <div id="interview-content" class="collapsible-content hidden">
+                    <div id="interview-prep"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History -->
+        <div id="history-section" class="history-section">
+            <h3>Recent Searches</h3>
+            <div id="history-list"></div>
+        </div>
+
+        <div class="footer">Built with love for Celina. Go get that job!</div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
