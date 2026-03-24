@@ -565,9 +565,8 @@ def scrape():
 
 
 if __name__ == "__main__":
-    print("\n✨ Celina's Job Toolkit is running!")
-    print("👉 Open http://localhost:3000 in your browser")
-    print("📊 Dashboard: http://localhost:3000/dashboard")
-    print("📋 Tracker: http://localhost:3000/tracker")
-    print("👤 Profile: http://localhost:3000/profile/page\n")
-    app.run(host="127.0.0.1", port=3000, threaded=True)
+    import os
+    port = int(os.environ.get("PORT", 3000))
+    print(f"\n✨ Celina's Job Toolkit is running!")
+    print(f"👉 Open http://localhost:{port} in your browser\n")
+    app.run(host="0.0.0.0", port=port, threaded=True)
