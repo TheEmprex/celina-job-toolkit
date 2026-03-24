@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Celina's Job Toolkit</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x2728;</text></svg>">
+<style>
+.dash { max-width: 680px; margin: 0 auto; padding: 0 20px 60px; }
+.nav-links a.active { color: var(--text); background: var(--surface); }
+.section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; margin-bottom: 14px; animation: fadeIn .3s ease; }
+.section h2 { font-size: .95rem; font-weight: 700; margin-bottom: 16px; }
+.section h2 small { font-size: .72rem; font-weight: 500; color: var(--text3); margin-left: 8px; }
+
+/* Progress rows */
+.goal-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.goal-row:last-child { margin-bottom: 0; }
+.goal-label { font-size: .78rem; color: var(--text2); width: 150px; flex-shrink: 0; }
+.goal-track { flex: 1; height: 7px; background: var(--surface3); border-radius: 4px; overflow: hidden; }
+.goal-fill { height: 100%; border-radius: 4px; transition: width .6s ease; min-width: 2px; }
+.goal-fill.purple { background: var(--purple); }
+.goal-fill.green { background: var(--green); }
+.goal-fill.orange { background: var(--orange); }
+.goal-stat { font-size: .72rem; font-weight: 600; color: var(--text3); width: 50px; flex-shrink: 0; text-align: right; }
+.edit-link { font-size: .7rem; color: var(--purple); cursor: pointer; background: none; border: none; font-family: inherit; font-weight: 600; margin-top: 10px; }
+.edit-link:hover { text-decoration: underline; }
+
+/* Inline edit */
+.edit-form { margin-top: 12px; padding: 14px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-sm); animation: slideDown .2s ease; }
+.edit-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.edit-field label { display: block; font-size: .62rem; font-weight: 700; color: var(--text4); text-transform: uppercase; letter-spacing: .3px; margin-bottom: 3px; }
+.edit-field input { width: 100%; padding: 6px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xs); color: var(--text); font-family: inherit; font-size: .82rem; font-weight: 600; outline: none; }
+.edit-field input:focus { border-color: var(--purple); }
+.edit-btns { display: flex; gap: 6px; justify-content: flex-end; }
+.edit-btns button { padding: 5px 14px; border-radius: var(--r-xs); font-family: inherit; font-size: .72rem; font-weight: 600; cursor: pointer; border: none; transition: .15s; }
+.btn-save { background: var(--purple); color: white; }
+.btn-save:hover { filter: brightness(1.15); }
+.btn-cancel { background: transparent; border: 1px solid var(--border); color: var(--text3); }
+
+/* Follow-up rows */
+.fu-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.fu-row:last-child { border-bottom: none; }
+.fu-info { flex: 1; min-width: 0; }
+.fu-name { font-size: .82rem; font-weight: 600; }
+.fu-detail { font-size: .7rem; color: var(--text3); }
+.fu-days { font-size: .68rem; font-weight: 700; color: var(--orange); white-space: nowrap; }
+.fu-btn { padding: 5px 12px; border-radius: var(--r-xs); background: #0a66c2; color: white; font-size: .68rem; font-weight: 600; text-decoration: none; border: none; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: .15s; }
+.fu-btn:hover { background: #004182; }
+.empty { color: var(--text4); font-size: .78rem; padding: 8px 0; }
+
+/* Recent apps */
+.app-line { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: .78rem; cursor: pointer; transition: background .1s; }
+.app-line:last-child { border-bottom: none; }
+.app-line:hover { background: var(--surface2); margin: 0 -20px; padding: 8px 20px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot.contacted { background: var(--green); }
+.dot.applied { background: var(--blue); }
+.dot.interviewing { background: var(--purple); }
+.dot.offered { background: #f5c542; }
+.dot.rejected { background: var(--text4); }
+.app-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.app-date { font-size: .68rem; color: var(--text4); white-space: nowrap; flex-shrink: 0; }
+.app-contacts { font-size: .65rem; color: var(--text3); background: var(--surface3); padding: 1px 7px; border-radius: 8px; flex-shrink: 0; }
+.view-all { display: inline-block; margin-top: 10px; font-size: .72rem; color: var(--purple); text-decoration: none; font-weight: 600; }
+.view-all:hover { text-decoration: underline; }
+
+/* Job leads */
+.lead-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.lead-row:last-child { border-bottom: none; }
+.lead-info { flex: 1; min-width: 0; }
+.lead-title { font-size: .8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lead-company { font-size: .68rem; color: var(--text3); }
+.lead-link { padding: 4px 10px; border: 1px solid var(--border); border-radius: var(--r-xs); font-size: .65rem; font-weight: 600; color: var(--purple); text-decoration: none; transition: .15s; flex-shrink: 0; }
+.lead-link:hover { border-color: var(--purple); background: var(--purple-soft); }
+.lead-btns { display: flex; gap: 8px; margin-top: 12px; }
+.lead-btns button { padding: 7px 16px; border-radius: var(--r-xs); font-family: inherit; font-size: .75rem; font-weight: 600; cursor: pointer; transition: .15s; }
+.btn-scan { background: var(--purple); color: white; border: none; }
+.btn-scan:hover { filter: brightness(1.15); }
+.btn-scan:disabled { opacity: .4; cursor: not-allowed; }
+.btn-toggle { background: transparent; border: 1px solid var(--border); color: var(--text3); }
+.btn-toggle:hover { border-color: var(--green); color: var(--green); }
+.btn-toggle.on { border-color: var(--green); color: var(--green); background: var(--green-soft); }
+
+/* Quick search */
+.qs-row { display: flex; align-items: center; background: var(--bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 4px; transition: .2s; }
+.qs-row:focus-within { border-color: var(--purple); box-shadow: 0 0 0 4px var(--purple-soft); }
+.qs-row input { flex: 1; padding: 10px 12px; background: transparent; border: none; color: var(--text); font-family: inherit; font-size: .88rem; outline: none; }
+.qs-row input::placeholder { color: var(--text4); }
+.qs-btn { padding: 9px 20px; border: none; border-radius: var(--r-sm); background: var(--purple); color: white; font-family: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; transition: .15s; flex-shrink: 0; }
+.qs-btn:hover { filter: brightness(1.15); }
+
+@media (max-width: 600px) {
+    .goal-label { width: 110px; font-size: .7rem; }
+    .edit-grid { grid-template-columns: 1fr; }
+    .fu-row { flex-wrap: wrap; }
+    .app-line:hover { margin: 0; padding: 8px 0; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+    <nav class="nav">
+        <a href="/" class="nav-logo">Celina</a>
+        <div class="nav-links">
+            <a href="/">Search</a>
+            <a href="/dashboard" class="active">Dashboard</a>
+            <a href="/tracker">Tracker</a>
+            <a href="/profile/page">Profile</a>
+        </div>
+    </nav>
+
+    <div class="dash">
+
+        <!-- Section 1: This Week -->
+        <div class="section" id="sec-week">
+            <h2>This Week</h2>
+            <div id="goals-content"><p class="empty">Loading...</p></div>
+        </div>
+
+        <!-- Section 2: Follow-ups Due -->
+        <div class="section" id="sec-followups">
+            <h2>People to follow up with</h2>
+            <div id="followups-content"><p class="empty">Loading...</p></div>
+        </div>
+
+        <!-- Section 3: Recent Applications -->
+        <div class="section" id="sec-recent">
+            <h2>Recent</h2>
+            <div id="recent-content"><p class="empty">Loading...</p></div>
+        </div>
+
+        <!-- Section 4: Job Leads -->
+        <div class="section" id="sec-leads">
+            <h2 id="leads-title">Job leads</h2>
+            <div id="leads-content"><p class="empty">Loading...</p></div>
+        </div>
+
+        <!-- Section 5: Quick Search -->
+        <div class="section">
+            <form id="qs-form" action="/" method="get">
+                <div class="qs-row">
+                    <input type="text" id="qs-input" name="q" placeholder="Search for a new role..." autocomplete="off">
+                    <button type="submit" class="qs-btn">Go</button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+    <footer class="foot">Celina's Job Toolkit</footer>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+(function(){
+'use strict';
+var apps=[], goalsData=null, scannerOn=false, scannerJobs=[];
+
+function $(s){return document.querySelector(s)}
+function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function toast(m,t){var el=$('#toast');el.textContent=m;el.className='toast '+(t||'success');el.classList.add('show');setTimeout(function(){el.classList.remove('show')},2500)}
+function daysSince(d){if(!d)return null;var t=new Date(d);if(isNaN(t))return null;return Math.floor((Date.now()-t)/(864e5))}
+function fmtDate(d){if(!d)return'';var t=new Date(d);if(isNaN(t))return d;var n=daysSince(d);if(n===0)return'today';if(n===1)return'yesterday';if(n<7)return n+' days ago';return t.toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+
+// --- Load all data ---
+async function init(){
+    try{
+        var [aRes,gRes]=await Promise.all([fetch('/api/applications'),fetch('/api/goals')]);
+        apps=await aRes.json();
+        goalsData=await gRes.json();
+    }catch(e){apps=[];goalsData=null}
+    renderWeek();
+    renderFollowups();
+    renderRecent();
+    loadScanner();
+}
+
+// --- Section 1: This Week ---
+function renderWeek(){
+    var el=$('#goals-content');
+    if(!goalsData){el.innerHTML='<p class="empty">No data yet. Start searching to track your progress.</p>';return}
+    var g=goalsData.goals||{}, a=goalsData.actuals||{};
+    var items=[
+        {label:'Applications',actual:a.applications||0,target:g.applications_target||10,color:'purple'},
+        {label:'People reached out to',actual:a.connections||0,target:g.connections_target||15,color:'green'},
+        {label:'Follow-ups sent',actual:a.follow_ups||0,target:g.follow_ups_target||5,color:'orange'}
+    ];
+    var h=items.map(function(m){
+        var pct=m.target>0?Math.min(Math.round(m.actual/m.target*100),100):0;
+        return '<div class="goal-row">'+
+            '<span class="goal-label">'+m.label+'</span>'+
+            '<div class="goal-track"><div class="goal-fill '+m.color+'" style="width:'+pct+'%"></div></div>'+
+            '<span class="goal-stat">'+m.actual+' of '+m.target+'</span></div>';
+    }).join('');
+    h+='<button class="edit-link" onclick="D.editGoals()">Edit targets</button><div id="edit-goals"></div>';
+    el.innerHTML=h;
+}
+
+var editOpen=false;
+function editGoals(){
+    editOpen=!editOpen;
+    var c=$('#edit-goals');if(!c)return;
+    if(!editOpen){c.innerHTML='';return}
+    var g=goalsData?goalsData.goals:{};
+    c.innerHTML='<div class="edit-form"><div class="edit-grid">'+
+        '<div class="edit-field"><label>Applications</label><input type="number" id="eg-a" value="'+(g.applications_target||10)+'" min="1"></div>'+
+        '<div class="edit-field"><label>Outreach</label><input type="number" id="eg-c" value="'+(g.connections_target||15)+'" min="1"></div>'+
+        '<div class="edit-field"><label>Follow-ups</label><input type="number" id="eg-f" value="'+(g.follow_ups_target||5)+'" min="1"></div>'+
+        '</div><div class="edit-btns">'+
+        '<button class="btn-cancel" onclick="D.editGoals()">Cancel</button>'+
+        '<button class="btn-save" onclick="D.saveGoals()">Save</button></div></div>';
+}
+
+async function saveGoals(){
+    try{
+        await fetch('/api/goals',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+            applications_target:parseInt($('#eg-a').value)||10,
+            connections_target:parseInt($('#eg-c').value)||15,
+            follow_ups_target:parseInt($('#eg-f').value)||5
+        })});
+        var r=await fetch('/api/goals');goalsData=await r.json();
+        editOpen=false;renderWeek();toast('Targets updated');
+    }catch(e){toast('Failed to save','error')}
+}
+
+// --- Section 2: Follow-ups Due ---
+async function renderFollowups(){
+    var el=$('#followups-content');
+    if(!apps.length){el.innerHTML='<p class="empty">No follow-ups due right now.</p>';return}
+    try{
+        var all=await Promise.all(apps.map(function(a){
+            return fetch('/api/applications/'+a.id+'/contacts').then(function(r){return r.json()}).then(function(c){return{app:a,contacts:c}});
+        }));
+        var due=[];
+        all.forEach(function(r){
+            r.contacts.forEach(function(c){
+                if(c.message_sent && !c.follow_up_sent && c.date_contacted){
+                    var d=daysSince(c.date_contacted);
+                    if(d!==null && d>=3) due.push({c:c,company:r.app.company,days:d});
+                }
+            });
+        });
+        due.sort(function(a,b){return b.days-a.days});
+        if(!due.length){el.innerHTML='<p class="empty">No follow-ups due right now.</p>';return}
+        el.innerHTML=due.map(function(r){
+            var btn=r.c.linkedin_url?'<a href="'+esc(r.c.linkedin_url)+'" target="_blank" rel="noopener" class="fu-btn">Open LinkedIn</a>':'';
+            return '<div class="fu-row"><div class="fu-info"><div class="fu-name">'+esc(r.c.name)+'</div>'+
+                '<div class="fu-detail">'+esc(r.company)+' &mdash; messaged '+r.days+' days ago</div></div>'+
+                '<span class="fu-days">'+r.days+'d</span>'+btn+'</div>';
+        }).join('');
+    }catch(e){el.innerHTML='<p class="empty">Could not load follow-ups.</p>'}
+}
+
+// --- Section 3: Recent Applications ---
+function renderRecent(){
+    var el=$('#recent-content');
+    if(!apps.length){el.innerHTML='<p class="empty">No applications yet. Run a search to get started.</p>';return}
+    var recent=apps.slice(0,5);
+    var h=recent.map(function(a){
+        var s=a.status||'applied';
+        return '<div class="app-line" onclick="location.href=\'/tracker\'">'+
+            '<span class="dot '+s+'"></span>'+
+            '<span class="app-text">'+esc(a.company)+(a.title?' &mdash; '+esc(a.title):'')+' &mdash; '+s.charAt(0).toUpperCase()+s.slice(1)+'</span>'+
+            '<span class="app-date">'+fmtDate(a.date_applied)+'</span>'+
+            '<span class="app-contacts">'+(a.contact_count||0)+' contacts</span></div>';
+    }).join('');
+    h+='<a href="/tracker" class="view-all">View all in tracker &rarr;</a>';
+    el.innerHTML=h;
+}
+
+// --- Section 4: Job Leads ---
+async function loadScanner(){
+    var el=$('#leads-content'), title=$('#leads-title');
+    try{
+        var [sRes,rRes]=await Promise.all([fetch('/api/scanner/status'),fetch('/api/scanner/results')]);
+        if(!sRes.ok||!rRes.ok) throw new Error('not available');
+        var status=await sRes.json(), results=await rRes.json();
+        scannerOn=status.running;
+        scannerJobs=results.jobs||results||[];
+        var count=Array.isArray(scannerJobs)?scannerJobs.length:0;
+        title.textContent=count>0?'New job leads ('+count+' found)':'Job leads';
+        var h='';
+        if(count>0){
+            h=scannerJobs.slice(0,6).map(function(j){
+                return '<div class="lead-row"><div class="lead-info"><div class="lead-title">'+esc(j.title||'Untitled')+'</div>'+
+                    '<div class="lead-company">'+esc(j.company||'')+'</div></div>'+
+                    (j.url?'<a href="'+esc(j.url)+'" target="_blank" rel="noopener" class="lead-link">View &rarr;</a>':'')+'</div>';
+            }).join('');
+        }else{
+            h='<p class="empty">No new leads yet.</p>';
+        }
+        h+='<div class="lead-btns"><button class="btn-scan" onclick="D.scanNow(this)">Scan now</button>'+
+            '<button class="btn-toggle'+(scannerOn?' on':'')+'" onclick="D.toggleScan(this)">'+(scannerOn?'Auto-scan on':'Turn on auto-scan')+'</button></div>';
+        el.innerHTML=h;
+    }catch(e){
+        title.textContent='Job leads';
+        el.innerHTML='<p class="empty">Set up your profile to get job alerts.</p>';
+    }
+}
+
+async function scanNow(btn){
+    btn.disabled=true;btn.textContent='Scanning...';
+    try{
+        // Capture current last_scan timestamp before triggering
+        var preSt=await fetch('/api/scanner/status');
+        var preSd=await preSt.json();
+        var prevScan=preSd.last_scan||'';
+        await fetch('/api/scanner/scan-now',{method:'POST'});
+        // The scan runs in a background thread; poll until last_scan changes
+        var attempts=0;
+        while(attempts<12){
+            await new Promise(function(r){setTimeout(r,2000)});
+            try{
+                var st=await fetch('/api/scanner/status');
+                var sd=await st.json();
+                if(sd.last_scan && sd.last_scan!==prevScan) break;
+            }catch(e){}
+            attempts++;
+        }
+        await loadScanner();toast('Scan complete');
+    }
+    catch(e){toast('Scan failed','error')}
+}
+
+async function toggleScan(btn){
+    try{
+        if(scannerOn){await fetch('/api/scanner/stop',{method:'POST'})}
+        else{await fetch('/api/scanner/start',{method:'POST'})}
+        await loadScanner();
+    }catch(e){toast('Failed to toggle scanner','error')}
+}
+
+// --- Quick search ---
+var f=$('#qs-form');
+if(f)f.addEventListener('submit',function(e){e.preventDefault();var v=$('#qs-input').value.trim();if(v)location.href='/?q='+encodeURIComponent(v)});
+
+// --- Expose ---
+window.D={editGoals:editGoals,saveGoals:saveGoals,scanNow:scanNow,toggleScan:toggleScan};
+init();
+})();
+</script>
+</body>
+</html>

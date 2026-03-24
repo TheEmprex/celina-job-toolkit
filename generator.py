@@ -60,7 +60,7 @@ ACTION_VERBS = [
 DEPARTMENT_MAP = {
     r"software|engineer|developer|sre|devops|backend|frontend|fullstack|full.stack|platform": "Engineering",
     r"product\s*manager|product\s*owner|product\s*lead": "Product",
-    r"design|ux|ui|user experience|user interface|graphic": "Design",
+    r"\bdesign\b|\bux\b|\bui\b|user experience|user interface|graphic": "Design",
     r"data\s*scientist|data\s*engineer|data\s*analyst|machine\s*learning|ml\b|ai\b|analytics": "Data & Analytics",
     r"marketing|growth|seo|content|brand|social media|digital marketing": "Marketing",
     r"sales|account\s*executive|business\s*development|bdr|sdr|revenue": "Sales",
@@ -70,16 +70,16 @@ DEPARTMENT_MAP = {
     r"legal|compliance|regulatory|counsel": "Legal",
     r"customer\s*success|customer\s*support|account\s*manager|client": "Customer Success",
     r"security|infosec|cybersec|penetration|threat": "Security",
-    r"project\s*manager|program\s*manager|pmo|scrum\s*master": "Project Management",
+    r"project\s*manager|program\s*manager|project\s*coordinator|program\s*coordinator|pmo|scrum\s*master": "Project Management",
     r"consultant|advisory|strategy": "Consulting",
     r"research|scientist|r&d": "Research",
     r"qa|quality|test\s*engineer|sdet": "Quality Assurance",
 }
 
 SENIORITY_SIGNALS = {
-    "senior": ["senior", "sr\\.?", "lead", "principal", "staff", "iii", "iv", "3", "4", "5+"],
-    "mid": ["mid", "ii", "2", "intermediate"],
-    "junior": ["junior", "jr\\.?", "entry", "associate", "intern", "i\\b", "1", "graduate", "new grad"],
+    "senior": ["senior", "sr\\.?", "lead", "principal", "staff", "iii", "iv", "5\\+"],
+    "mid": ["mid", "ii", "intermediate"],
+    "junior": ["junior", "jr\\.?", "entry", "associate", "intern", "i\\b", "graduate", "new grad"],
     "executive": ["director", "vp", "vice president", "head of", "chief", "cto", "cfo", "ceo", "coo", "svp", "evp"],
 }
 
@@ -218,8 +218,19 @@ def generate_cover_letter(title: str, company: str, description: str, extracted:
     department = extracted["department"]
 
     skills_str = ", ".join(skills) if skills else "the core technologies in your stack"
-    soft_str = " and ".join(soft) if soft else "strong communication and collaboration"
+    # Ensure soft skills read as proper noun phrases in prose (e.g. "stakeholder" → "stakeholder management")
+    _soft_noun_fix = {
+        "stakeholder": "stakeholder management",
+        "deadline": "deadline management",
+        "analytical": "analytical thinking",
+        "proactive": "proactive problem-solving",
+        "autonomous": "autonomous work",
+    }
+    soft_fixed = [_soft_noun_fix.get(s, s) for s in soft]
+    soft_str = " and ".join(soft_fixed) if soft_fixed else "strong communication and collaboration"
     simplified = simplify_title(title)
+    # Avoid "general" appearing in prose when no specific department is detected
+    dept_str = department.lower() if department != "General" else simplified
 
     # Tone adjustments
     if seniority == "senior" or seniority == "executive":
@@ -235,9 +246,9 @@ def generate_cover_letter(title: str, company: str, description: str, extracted:
     # Build responsibility highlights
     if responsibilities:
         resp_bullets = "\n".join(f"  - {r}" for r in responsibilities[:3])
-        resp_section = f"\nI am particularly excited about the responsibilities outlined in this role:\n{resp_bullets}\n\nThese align closely with my experience and what I am passionate about."
+        resp_section = f"\n\nI am particularly excited about the responsibilities outlined in this role:\n{resp_bullets}\n\nThese align closely with my experience and what I am passionate about."
     else:
-        resp_section = f"\nI am particularly excited about the opportunity to contribute to {company}'s {department.lower()} team and the impact this role can have."
+        resp_section = f"I am particularly excited about the opportunity to contribute to {company}'s {dept_str} team and the impact this role can have."
 
     templates = [
         f"""Dear Hiring Team at {company},
@@ -257,7 +268,7 @@ Celina""",
 
 I am excited to apply for the {title} role at {company}. {experience_line} in {skills_str}, I believe I bring the right combination of technical expertise and {soft_str} that this position demands.
 
-{impact_line}. Throughout my career, I have developed a deep understanding of {department.lower()} best practices and have consistently sought to go beyond expectations. {resp_section}
+{impact_line}. Throughout my career, I have developed a deep understanding of {dept_str} best practices and have consistently sought to go beyond expectations. {resp_section}
 
 I am drawn to {company} because of its reputation for excellence and innovation. I am eager to bring my skills and energy to your team and contribute to the exciting work ahead.
 
@@ -272,7 +283,7 @@ The {title} opportunity at {company} immediately caught my attention, and I am t
 
 {impact_line}, always with a focus on {soft_str}. I take pride in being someone who not only delivers technically but also elevates the people and processes around me. {resp_section}
 
-{company} stands out to me as a company that values both innovation and its people. I am excited about the prospect of contributing to a team that shares my passion for excellence in {department.lower()}.
+{company} stands out to me as a company that values both innovation and its people. I am excited about the prospect of contributing to a team that shares my passion for excellence in {dept_str}.
 
 I am looking forward to the opportunity to discuss how I can contribute to {company}'s continued success. Thank you for considering my application.
 

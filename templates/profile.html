@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile — Celina's Job Toolkit</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x1F464;</text></svg>">
+    <style>
+        /* ---- Profile Page Layout ---- */
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+            margin-bottom: 24px;
+            transition: color var(--transition);
+        }
+        .back-link:hover { color: var(--accent); }
+        .back-link svg { width: 16px; height: 16px; }
+
+        .profile-header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+        .profile-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--teal) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 6px;
+        }
+        .profile-header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            font-weight: 300;
+        }
+
+        /* ---- Sections ---- */
+        .profile-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+        .profile-section h2 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-icon {
+            font-size: 1.1rem;
+        }
+
+        /* ---- Form Fields ---- */
+        .field-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .field-row.full {
+            grid-template-columns: 1fr;
+        }
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .field-group label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .field-group input[type="text"],
+        .field-group input[type="email"],
+        .field-group input[type="tel"],
+        .field-group input[type="url"],
+        .field-group textarea,
+        .field-group select {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+        .field-group input:focus,
+        .field-group textarea:focus,
+        .field-group select:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .field-group input::placeholder,
+        .field-group textarea::placeholder {
+            color: var(--text-dim);
+        }
+        .field-group textarea {
+            min-height: 100px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+        .field-group select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238888a4' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 32px;
+        }
+        .field-group select option {
+            background: var(--bg-card);
+            color: var(--text);
+        }
+
+        /* ---- Tag Inputs (skills, languages, target_roles) ---- */
+        .tag-input-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px 12px;
+            min-height: 44px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: text;
+            transition: border-color var(--transition), box-shadow var(--transition);
+            align-items: center;
+        }
+        .tag-input-container:focus-within {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .tag-input-container .tag-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            background: var(--accent-glow);
+            border: 1px solid rgba(108, 99, 255, 0.25);
+            color: var(--accent);
+            animation: fadeIn 0.2s ease;
+        }
+        .tag-pill .tag-remove {
+            cursor: pointer;
+            font-size: 0.9rem;
+            line-height: 1;
+            opacity: 0.7;
+            transition: opacity var(--transition), color var(--transition);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+        .tag-pill .tag-remove:hover {
+            opacity: 1;
+            color: var(--error);
+        }
+        .tag-input-container input.tag-input {
+            flex: 1;
+            min-width: 120px;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.88rem;
+            padding: 4px 0;
+        }
+        .tag-input::placeholder {
+            color: var(--text-dim);
+        }
+        .tag-hint {
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+
+        /* ---- Repeating Entries (Experience / Education) ---- */
+        .entry-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .entry-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            position: relative;
+            animation: fadeIn 0.3s ease;
+        }
+        .entry-card .entry-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .entry-card .entry-number {
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-dim);
+        }
+        .btn-remove-entry {
+            padding: 4px 12px;
+            border: 1px solid rgba(255, 107, 107, 0.25);
+            border-radius: 6px;
+            background: rgba(255, 107, 107, 0.08);
+            color: var(--error);
+            font-family: inherit;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .btn-remove-entry:hover {
+            background: rgba(255, 107, 107, 0.15);
+            border-color: rgba(255, 107, 107, 0.4);
+        }
+        .entry-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .entry-fields .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .btn-add-entry {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-sm);
+            background: transparent;
+            color: var(--text-dim);
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+            margin-top: 12px;
+        }
+        .btn-add-entry:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-glow);
+        }
+
+        /* ---- Tone Selector ---- */
+        .tone-options {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .tone-option {
+            flex: 1;
+            min-width: 140px;
+        }
+        .tone-option input[type="radio"] {
+            display: none;
+        }
+        .tone-option label.tone-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 16px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-input);
+            cursor: pointer;
+            transition: all var(--transition);
+            text-transform: none;
+            letter-spacing: 0;
+            text-align: center;
+        }
+        .tone-option label.tone-label .tone-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .tone-option label.tone-label .tone-desc {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+        .tone-option input[type="radio"]:checked + label.tone-label {
+            border-color: var(--accent);
+            background: var(--accent-glow);
+            box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.1);
+        }
+        .tone-option input[type="radio"]:checked + label.tone-label .tone-name {
+            color: var(--accent);
+        }
+
+        /* ---- Save Button ---- */
+        .save-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .btn-save {
+            padding: 14px 40px;
+            border: none;
+            border-radius: var(--radius);
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            color: white;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .btn-save:hover {
+            background: linear-gradient(135deg, var(--accent-hover), #9b6ff6);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 30px rgba(108, 99, 255, 0.3);
+        }
+        .btn-save:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* ---- Success Toast ---- */
+        .toast-success {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 14px 24px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            background: var(--teal-glow);
+            border: 1px solid rgba(0, 212, 170, 0.3);
+            color: var(--teal);
+        }
+        .toast-success.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* ---- Loading Overlay ---- */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 10, 15, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 640px) {
+            .field-row {
+                grid-template-columns: 1fr;
+            }
+            .entry-fields {
+                grid-template-columns: 1fr;
+            }
+            .tone-options {
+                flex-direction: column;
+            }
+            .tone-option {
+                min-width: 0;
+            }
+            .profile-header h1 {
+                font-size: 1.6rem;
+            }
+            .profile-section {
+                padding: 20px 16px;
+            }
+            .save-row {
+                justify-content: stretch;
+            }
+            .btn-save {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Back link -->
+        <a href="/" class="back-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Back to Toolkit
+        </a>
+
+        <!-- Header -->
+        <div class="profile-header">
+            <h1>My Profile</h1>
+            <p>Fill in your details once. They will power every cover letter, message, and application.</p>
+        </div>
+
+        <!-- CV Quick Setup -->
+        <div class="profile-section" style="border-color: var(--accent); background: linear-gradient(135deg, var(--accent-soft), transparent);">
+            <h2><span class="section-icon">&#9889;</span> Quick Setup — Paste Your CV</h2>
+            <p style="font-size:0.85rem;color:var(--text2, var(--text-muted));margin-bottom:14px;">
+                Paste your CV below and I'll auto-fill everything — name, skills, experience, education. You can edit after.
+            </p>
+            <textarea id="cv-paste" rows="6" placeholder="Paste your entire CV/resume text here..." style="width:100%;padding:14px;background:var(--bg, var(--bg-input));border:1px solid var(--border);border-radius:var(--radius-sm, 10px);color:var(--text);font-family:inherit;font-size:0.88rem;resize:vertical;outline:none;margin-bottom:10px;"></textarea>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <button onclick="parseCV()" style="padding:10px 24px;border:none;border-radius:var(--radius-sm, 10px);background:var(--accent, #8b5cf6);color:white;font-family:inherit;font-size:0.88rem;font-weight:700;cursor:pointer;">
+                    Auto-fill my profile
+                </button>
+                <label style="padding:10px 20px;border:1px solid var(--border);border-radius:var(--radius-sm, 10px);background:transparent;color:var(--text2, var(--text-muted));font-size:0.82rem;cursor:pointer;font-weight:500;">
+                    Or upload PDF
+                    <input type="file" id="cv-file" accept=".pdf,.txt,.doc,.docx" style="display:none" onchange="uploadCV(this)">
+                </label>
+                <span id="cv-status" style="font-size:0.78rem;color:var(--teal, #10b981);display:none;font-weight:600;">Profile filled!</span>
+            </div>
+        </div>
+
+        <!-- Basic Info -->
+        <div class="profile-section">
+            <h2><span class="section-icon">&#128100;</span> Basic Information</h2>
+            <div class="field-row">
+                <div class="field-group">
+                    <label for="field-name">First Name</label>
+                    <input type="text" id="field-name" placeholder="Celina">
+                </div>
+                <div class="field-group">
+                    <label for="field-last-name">Last Name</label>
+                    <input type="text" id="field-last-name" placeholder="Dupont">
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field-group">
+                    <label for="field-email">Email</label>
+                    <input type="email" id="field-email" placeholder="celina@example.com">
+                </div>
+                <div class="field-group">
+                    <label for="field-phone">Phone</label>
+                    <input type="tel" id="field-phone" placeholder="+33 6 12 34 56 78">
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field-group">
+                    <label for="field-location">Location</label>
+                    <input type="text" id="field-location" placeholder="Paris, France">
+                </div>
+                <div class="field-group">
+                    <label for="field-linkedin">LinkedIn URL</label>
+                    <input type="url" id="field-linkedin" placeholder="https://linkedin.com/in/celina">
+                </div>
+            </div>
+        </div>
+
+        <!-- Professional Summary -->
+        <div class="profile-section">
+            <h2><span class="section-icon">&#128221;</span> Professional Summary</h2>
+            <div class="field-row full">
+                <div class="field-group">
+                    <label for="field-summary">Summary</label>
+                    <textarea id="field-summary" placeholder="A brief professional summary highlighting your strengths, experience, and career goals..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Skills -->
+        <div class="profile-section">
+            <h2><span class="section-icon">&#9889;</span> Skills</h2>
+            <div class="field-group">
+                <label>Skills</label>
+                <div class="tag-input-container" id="skills-container" onclick="this.querySelector('input').focus()">
+                    <input type="text" class="tag-input" id="skills-input" placeholder="Type a skill and press Enter...">
+                </div>
+                <div class="tag-hint">Press Enter to add. Click the X on a tag to remove it.</div>
+            </div>
+        </div>
+
+        <!-- Experience -->
+        <div class="profile-section">
+            <h2><span class="section-icon">&#128188;</span> Experience</h2>
+            <div class="entry-list" id="experience-list"></div>
+            <button class="btn-add-entry" onclick="addExperience()">+ Add Experience</button>
+        </div>
+
+        <!-- Education -->
+        <div class="profile-section">
+            <h2><span class="section-icon">&#127891;</span> Education</h2>
+            <div class="entry-list" id="education-list"></div>
+            <button class="btn-add-entry" onclick="addEducation()">+ Add Education</button>
+        </div>
+
+        <!-- Languages -->
+        <div class="profile-section">
+            <h2><span class="section-icon">&#127760;</span> Languages</h2>
+            <div class="field-group">
+                <label>Languages</label>
+                <div class="tag-input-container" id="languages-container" onclick="this.querySelector('input').focus()">
+                    <input type="text" class="tag-input" id="languages-input" placeholder="Type a language and press Enter...">
+                </div>
+                <div class="tag-hint">Press Enter to add. Click the X on a tag to remove it.</div>
+            </div>
+        </div>
+
+        <!-- Target Roles -->
+        <div class="profile-section">
+            <h2><span class="section-icon">&#127919;</span> Target Roles</h2>
+            <div class="field-group">
+                <label>Target Roles</label>
+                <div class="tag-input-container" id="target-roles-container" onclick="this.querySelector('input').focus()">
+                    <input type="text" class="tag-input" id="target-roles-input" placeholder="Type a role and press Enter...">
+                </div>
+                <div class="tag-hint">Press Enter to add. Click the X on a tag to remove it.</div>
+            </div>
+        </div>
+
+        <!-- Tone -->
+        <div class="profile-section">
+            <h2><span class="section-icon">&#127908;</span> Communication Tone</h2>
+            <div class="tone-options">
+                <div class="tone-option">
+                    <input type="radio" name="tone" id="tone-professional" value="professional">
+                    <label for="tone-professional" class="tone-label">
+                        <span class="tone-name">Professional</span>
+                        <span class="tone-desc">Formal and polished</span>
+                    </label>
+                </div>
+                <div class="tone-option">
+                    <input type="radio" name="tone" id="tone-friendly" value="friendly">
+                    <label for="tone-friendly" class="tone-label">
+                        <span class="tone-name">Friendly</span>
+                        <span class="tone-desc">Warm and approachable</span>
+                    </label>
+                </div>
+                <div class="tone-option">
+                    <input type="radio" name="tone" id="tone-casual" value="casual">
+                    <label for="tone-casual" class="tone-label">
+                        <span class="tone-name">Casual</span>
+                        <span class="tone-desc">Relaxed and conversational</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Save -->
+        <div class="save-row">
+            <button class="btn-save" id="btn-save" onclick="saveProfile()">Save Profile</button>
+        </div>
+
+        <div class="footer">Built with love for Celina. Go get that job!</div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-success" id="toast"></div>
+
+    <!-- Loading overlay (hidden by default) -->
+    <div class="loading-overlay" id="loading" style="display:none;">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <script>
+    // =========================================================================
+    // CV Auto-Parse
+    // =========================================================================
+    async function parseCV() {
+        const text = document.getElementById('cv-paste').value.trim();
+        if (!text) return;
+        try {
+            const r = await fetch('/cv/auto-setup', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ text }),
+            });
+            if (r.ok) {
+                document.getElementById('cv-status').style.display = 'inline';
+                document.getElementById('cv-status').textContent = 'Profile filled!';
+                // Reload the form with the new data
+                await loadProfile();
+                window.scrollTo({ top: document.querySelector('.profile-section:nth-child(4)').offsetTop - 20, behavior: 'smooth' });
+            } else {
+                const d = await r.json();
+                alert(d.error || 'Failed to parse CV');
+            }
+        } catch(e) {
+            console.error(e);
+            alert('Failed to parse CV. Try pasting more text.');
+        }
+    }
+
+    async function uploadCV(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            const r = await fetch('/cv/parse-pdf', { method: 'POST', body: formData });
+            if (r.ok) {
+                const data = await r.json();
+                // Save it
+                await fetch('/profile', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data),
+                });
+                document.getElementById('cv-status').style.display = 'inline';
+                document.getElementById('cv-status').textContent = 'Profile filled from PDF!';
+                await loadProfile();
+            } else {
+                alert('Could not read this file. Try pasting the text instead.');
+            }
+        } catch(e) {
+            console.error(e);
+            alert('Upload failed. Try pasting the text instead.');
+        }
+    }
+
+    // =========================================================================
+    // State
+    // =========================================================================
+    const tagData = {
+        skills: [],
+        languages: [],
+        'target-roles': [],
+    };
+
+    // =========================================================================
+    // Tag input system
+    // =========================================================================
+    function initTagInput(containerId, inputId, key) {
+        const container = document.getElementById(containerId);
+        const input = document.getElementById(inputId);
+
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const val = input.value.trim();
+                if (val && !tagData[key].includes(val)) {
+                    tagData[key].push(val);
+                    renderTags(containerId, key);
+                }
+                input.value = '';
+            }
+            // Backspace on empty input removes last tag
+            if (e.key === 'Backspace' && input.value === '' && tagData[key].length > 0) {
+                tagData[key].pop();
+                renderTags(containerId, key);
+            }
+        });
+    }
+
+    function renderTags(containerId, key) {
+        const container = document.getElementById(containerId);
+        const input = container.querySelector('input.tag-input');
+
+        // Remove existing pills
+        container.querySelectorAll('.tag-pill').forEach(el => el.remove());
+
+        // Insert pills before the input
+        tagData[key].forEach((val, idx) => {
+            const pill = document.createElement('span');
+            pill.className = 'tag-pill';
+            pill.innerHTML = `${escapeHtml(val)}<span class="tag-remove" onclick="removeTag(event, '${key}', ${idx}, '${containerId}')">&times;</span>`;
+            container.insertBefore(pill, input);
+        });
+    }
+
+    function removeTag(e, key, idx, containerId) {
+        e.stopPropagation();
+        tagData[key].splice(idx, 1);
+        renderTags(containerId, key);
+    }
+
+    function setTags(key, containerId, values) {
+        tagData[key] = values.slice();
+        renderTags(containerId, key);
+    }
+
+    // =========================================================================
+    // Experience entries
+    // =========================================================================
+    let experienceEntries = [];
+
+    function addExperience(data) {
+        const entry = data || { title: '', company: '', duration: '', highlights: '' };
+        experienceEntries.push(entry);
+        renderExperience();
+    }
+
+    function removeExperience(idx) {
+        experienceEntries.splice(idx, 1);
+        renderExperience();
+    }
+
+    function renderExperience() {
+        const list = document.getElementById('experience-list');
+        list.innerHTML = '';
+        experienceEntries.forEach((entry, idx) => {
+            const card = document.createElement('div');
+            card.className = 'entry-card';
+            card.innerHTML = `
+                <div class="entry-header">
+                    <span class="entry-number">Experience #${idx + 1}</span>
+                    <button class="btn-remove-entry" onclick="removeExperience(${idx})">Remove</button>
+                </div>
+                <div class="entry-fields">
+                    <div class="field-group">
+                        <label>Job Title</label>
+                        <input type="text" value="${escapeAttr(entry.title)}" placeholder="Product Manager"
+                            onchange="experienceEntries[${idx}].title = this.value">
+                    </div>
+                    <div class="field-group">
+                        <label>Company</label>
+                        <input type="text" value="${escapeAttr(entry.company)}" placeholder="Google"
+                            onchange="experienceEntries[${idx}].company = this.value">
+                    </div>
+                    <div class="field-group">
+                        <label>Duration</label>
+                        <input type="text" value="${escapeAttr(entry.duration)}" placeholder="Jan 2022 - Present"
+                            onchange="experienceEntries[${idx}].duration = this.value">
+                    </div>
+                    <div class="field-group full-width">
+                        <label>Highlights</label>
+                        <textarea rows="3" placeholder="Key achievements, responsibilities..."
+                            onchange="experienceEntries[${idx}].highlights = this.value">${escapeHtml(entry.highlights || '')}</textarea>
+                    </div>
+                </div>
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    // =========================================================================
+    // Education entries
+    // =========================================================================
+    let educationEntries = [];
+
+    function addEducation(data) {
+        const entry = data || { degree: '', school: '', year: '' };
+        educationEntries.push(entry);
+        renderEducation();
+    }
+
+    function removeEducation(idx) {
+        educationEntries.splice(idx, 1);
+        renderEducation();
+    }
+
+    function renderEducation() {
+        const list = document.getElementById('education-list');
+        list.innerHTML = '';
+        educationEntries.forEach((entry, idx) => {
+            const card = document.createElement('div');
+            card.className = 'entry-card';
+            card.innerHTML = `
+                <div class="entry-header">
+                    <span class="entry-number">Education #${idx + 1}</span>
+                    <button class="btn-remove-entry" onclick="removeEducation(${idx})">Remove</button>
+                </div>
+                <div class="entry-fields">
+                    <div class="field-group">
+                        <label>Degree</label>
+                        <input type="text" value="${escapeAttr(entry.degree)}" placeholder="MSc Computer Science"
+                            onchange="educationEntries[${idx}].degree = this.value">
+                    </div>
+                    <div class="field-group">
+                        <label>School</label>
+                        <input type="text" value="${escapeAttr(entry.school)}" placeholder="MIT"
+                            onchange="educationEntries[${idx}].school = this.value">
+                    </div>
+                    <div class="field-group">
+                        <label>Year</label>
+                        <input type="text" value="${escapeAttr(entry.year)}" placeholder="2023"
+                            onchange="educationEntries[${idx}].year = this.value">
+                    </div>
+                </div>
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    // =========================================================================
+    // Load profile from server
+    // =========================================================================
+    async function loadProfile() {
+        showLoading(true);
+        try {
+            const res = await fetch('/profile');
+            const data = await res.json();
+
+            // Basic fields
+            document.getElementById('field-name').value = data.name || '';
+            document.getElementById('field-last-name').value = data.last_name || '';
+            document.getElementById('field-email').value = data.email || '';
+            document.getElementById('field-phone').value = data.phone || '';
+            document.getElementById('field-location').value = data.location || '';
+            document.getElementById('field-linkedin').value = data.linkedin_url || '';
+            document.getElementById('field-summary').value = data.summary || '';
+
+            // Tags
+            setTags('skills', 'skills-container', data.skills || []);
+            setTags('languages', 'languages-container', data.languages || []);
+            setTags('target-roles', 'target-roles-container', data.target_roles || []);
+
+            // Experience
+            experienceEntries = [];
+            (data.experience || []).forEach(e => {
+                let hl = e.highlights || '';
+                if (Array.isArray(hl)) hl = hl.join('\n');
+                experienceEntries.push({
+                    title: e.title || '',
+                    company: e.company || '',
+                    duration: e.duration || '',
+                    highlights: hl,
+                });
+            });
+            renderExperience();
+
+            // Education
+            educationEntries = [];
+            (data.education || []).forEach(e => {
+                educationEntries.push({
+                    degree: e.degree || '',
+                    school: e.school || '',
+                    year: e.year || '',
+                });
+            });
+            renderEducation();
+
+            // Tone
+            const tone = data.tone || 'professional';
+            const radio = document.getElementById('tone-' + tone);
+            if (radio) radio.checked = true;
+
+        } catch (err) {
+            console.error('Failed to load profile:', err);
+            showToast('Failed to load profile', true);
+        }
+        showLoading(false);
+    }
+
+    // =========================================================================
+    // Save profile to server
+    // =========================================================================
+    async function saveProfile() {
+        const btn = document.getElementById('btn-save');
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+
+        // Sync experience/education textareas (onchange might not fire for all)
+        document.querySelectorAll('#experience-list .entry-card').forEach((card, idx) => {
+            const inputs = card.querySelectorAll('input');
+            const textarea = card.querySelector('textarea');
+            experienceEntries[idx].title = inputs[0].value;
+            experienceEntries[idx].company = inputs[1].value;
+            experienceEntries[idx].duration = inputs[2].value;
+            experienceEntries[idx].highlights = textarea ? textarea.value : '';
+        });
+        document.querySelectorAll('#education-list .entry-card').forEach((card, idx) => {
+            const inputs = card.querySelectorAll('input');
+            educationEntries[idx].degree = inputs[0].value;
+            educationEntries[idx].school = inputs[1].value;
+            educationEntries[idx].year = inputs[2].value;
+        });
+
+        const payload = {
+            name: document.getElementById('field-name').value.trim(),
+            last_name: document.getElementById('field-last-name').value.trim(),
+            email: document.getElementById('field-email').value.trim(),
+            phone: document.getElementById('field-phone').value.trim(),
+            location: document.getElementById('field-location').value.trim(),
+            linkedin_url: document.getElementById('field-linkedin').value.trim(),
+            summary: document.getElementById('field-summary').value.trim(),
+            skills: tagData.skills.slice(),
+            languages: tagData.languages.slice(),
+            target_roles: tagData['target-roles'].slice(),
+            experience: experienceEntries.map(e => ({
+                title: e.title,
+                company: e.company,
+                duration: e.duration,
+                highlights: e.highlights,
+            })),
+            education: educationEntries.map(e => ({
+                degree: e.degree,
+                school: e.school,
+                year: e.year,
+            })),
+            tone: (document.querySelector('input[name="tone"]:checked') || {}).value || 'professional',
+        };
+
+        try {
+            const res = await fetch('/profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const result = await res.json();
+            if (result.success) {
+                showToast('Profile saved successfully!');
+            } else {
+                showToast(result.error || 'Save failed', true);
+            }
+        } catch (err) {
+            console.error('Save error:', err);
+            showToast('Network error. Could not save.', true);
+        }
+
+        btn.disabled = false;
+        btn.textContent = 'Save Profile';
+    }
+
+    // =========================================================================
+    // Helpers
+    // =========================================================================
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function escapeAttr(str) {
+        return (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function showToast(message, isError) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        if (isError) {
+            toast.style.background = 'rgba(255,107,107,0.15)';
+            toast.style.borderColor = 'rgba(255,107,107,0.3)';
+            toast.style.color = 'var(--error)';
+        } else {
+            toast.style.background = '';
+            toast.style.borderColor = '';
+            toast.style.color = '';
+        }
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function showLoading(show) {
+        document.getElementById('loading').style.display = show ? 'flex' : 'none';
+    }
+
+    // =========================================================================
+    // Init
+    // =========================================================================
+    initTagInput('skills-container', 'skills-input', 'skills');
+    initTagInput('languages-container', 'languages-input', 'languages');
+    initTagInput('target-roles-container', 'target-roles-input', 'target-roles');
+
+    loadProfile();
+    </script>
+</body>
+</html>

@@ -1,0 +1,693 @@
+"""
+Celina's Job Application Toolkit — Export System
+Provides PDF cover letters, full reports, CSV contacts, and JSON downloads.
+All exports are served via Flask Blueprint routes keyed by job_id.
+"""
+
+import csv
+import io
+import json
+import os
+import time
+from datetime import datetime
+from pathlib import Path
+
+from flask import Blueprint, Response, abort
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import LETTER
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle,
+    PageBreak,
+    HRFlowable,
+)
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+CACHE_DIR = Path.home() / ".celina_cache"
+CACHE_TTL_SECONDS = 7 * 24 * 60 * 60  # 7 days
+
+PAGE_WIDTH, PAGE_HEIGHT = LETTER
+MARGIN = 1 * inch
+
+# ---------------------------------------------------------------------------
+# Result Cache
+# ---------------------------------------------------------------------------
+
+
+def _ensure_cache_dir() -> Path:
+    """Create the cache directory if it does not exist and return its path."""
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    return CACHE_DIR
+
+
+def save_result(job_id: str, data: dict) -> None:
+    """Persist a pipeline result dict as JSON in the cache directory."""
+    _ensure_cache_dir()
+    payload = {
+        "timestamp": time.time(),
+        "data": data,
+    }
+    path = CACHE_DIR / f"{job_id}.json"
+    path.write_text(json.dumps(payload, default=str), encoding="utf-8")
+
+
+def load_result(job_id: str) -> dict | None:
+    """Load a cached result. Returns *None* if the file is missing or expired."""
+    path = CACHE_DIR / f"{job_id}.json"
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    if time.time() - payload.get("timestamp", 0) > CACHE_TTL_SECONDS:
+        path.unlink(missing_ok=True)
+        return None
+    return payload["data"]
+
+
+# ---------------------------------------------------------------------------
+# PDF Helpers — shared styles
+# ---------------------------------------------------------------------------
+
+def _base_styles():
+    """Return a dict of ParagraphStyles used across all PDFs."""
+    ss = getSampleStyleSheet()
+    return {
+        "name": ParagraphStyle(
+            "CL_Name",
+            fontName="Helvetica-Bold",
+            fontSize=18,
+            leading=22,
+            alignment=2,  # right-aligned
+        ),
+        "contact": ParagraphStyle(
+            "CL_Contact",
+            fontName="Helvetica",
+            fontSize=10,
+            leading=13,
+            alignment=2,
+            textColor=colors.HexColor("#444444"),
+        ),
+        "date": ParagraphStyle(
+            "CL_Date",
+            fontName="Helvetica",
+            fontSize=11,
+            leading=14,
+            textColor=colors.HexColor("#555555"),
+        ),
+        "body": ParagraphStyle(
+            "CL_Body",
+            fontName="Helvetica",
+            fontSize=12,
+            leading=17,
+            spaceBefore=4,
+            spaceAfter=4,
+        ),
+        "heading": ParagraphStyle(
+            "CL_Heading",
+            fontName="Helvetica-Bold",
+            fontSize=14,
+            leading=18,
+            spaceBefore=14,
+            spaceAfter=6,
+            textColor=colors.HexColor("#1a1a2e"),
+        ),
+        "subheading": ParagraphStyle(
+            "CL_Sub",
+            fontName="Helvetica-Bold",
+            fontSize=12,
+            leading=15,
+            spaceBefore=10,
+            spaceAfter=4,
+            textColor=colors.HexColor("#16213e"),
+        ),
+        "small": ParagraphStyle(
+            "CL_Small",
+            fontName="Helvetica",
+            fontSize=10,
+            leading=13,
+            textColor=colors.HexColor("#666666"),
+        ),
+        "table_header": ParagraphStyle(
+            "TH",
+            fontName="Helvetica-Bold",
+            fontSize=9,
+            leading=11,
+            textColor=colors.white,
+        ),
+        "table_cell": ParagraphStyle(
+            "TC",
+            fontName="Helvetica",
+            fontSize=8.5,
+            leading=11,
+        ),
+        "title_large": ParagraphStyle(
+            "TitleLarge",
+            fontName="Helvetica-Bold",
+            fontSize=22,
+            leading=26,
+            spaceBefore=0,
+            spaceAfter=4,
+            textColor=colors.HexColor("#1a1a2e"),
+        ),
+    }
+
+
+def _footer(canvas, doc):
+    """Draw a subtle footer on every page."""
+    canvas.saveState()
+    canvas.setFont("Helvetica", 8)
+    canvas.setFillColor(colors.HexColor("#999999"))
+    canvas.drawString(
+        MARGIN,
+        0.55 * inch,
+        f"Generated by Celina's Job Toolkit — {datetime.now().strftime('%B %d, %Y')}",
+    )
+    canvas.drawRightString(
+        PAGE_WIDTH - MARGIN,
+        0.55 * inch,
+        f"Page {doc.page}",
+    )
+    canvas.restoreState()
+
+
+# ---------------------------------------------------------------------------
+# PDF: Cover Letter
+# ---------------------------------------------------------------------------
+
+
+def generate_cover_letter_pdf(
+    text: str,
+    company: str,
+    title: str,
+    name: str = "Celina",
+    email: str = "",
+    phone: str = "",
+) -> bytes:
+    """
+    Build a professional one-page cover letter PDF and return it as bytes.
+    """
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf,
+        pagesize=LETTER,
+        topMargin=MARGIN,
+        bottomMargin=MARGIN,
+        leftMargin=MARGIN,
+        rightMargin=MARGIN,
+    )
+
+    styles = _base_styles()
+    story: list = []
+
+    # --- Header: name + contact info (right-aligned) ---
+    story.append(Paragraph(name, styles["name"]))
+    contact_parts = [p for p in [email, phone] if p]
+    if contact_parts:
+        story.append(Paragraph(" &bull; ".join(contact_parts), styles["contact"]))
+    story.append(Spacer(1, 6))
+
+    # Thin accent line
+    story.append(
+        HRFlowable(
+            width="100%",
+            thickness=1.2,
+            color=colors.HexColor("#1a1a2e"),
+            spaceAfter=14,
+        )
+    )
+
+    # --- Date (left-aligned) ---
+    story.append(
+        Paragraph(datetime.now().strftime("%B %d, %Y"), styles["date"])
+    )
+    story.append(Spacer(1, 18))
+
+    # --- Letter body ---
+    # Split the raw text into paragraphs on blank lines.
+    paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+    if not paragraphs:
+        paragraphs = [p.strip() for p in text.split("\n") if p.strip()]
+
+    for para in paragraphs:
+        # Replace single newlines with spaces within a paragraph for cleaner flow
+        clean = para.replace("\n", " ")
+        story.append(Paragraph(clean, styles["body"]))
+        story.append(Spacer(1, 4))
+
+    # --- Sign-off ---
+    story.append(Spacer(1, 18))
+    story.append(Paragraph("Best regards,", styles["body"]))
+    story.append(Spacer(1, 4))
+    story.append(Paragraph(name, styles["body"]))
+
+    doc.build(story, onFirstPage=_footer, onLaterPages=_footer)
+    return buf.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# PDF: Full Report
+# ---------------------------------------------------------------------------
+
+
+def _build_cover_letter_page(data: dict, styles: dict) -> list:
+    """Return flowables for page 1 — the cover letter."""
+    story: list = []
+    name = data.get("name", "Celina")
+    email = data.get("email", "")
+    phone = data.get("phone", "")
+    company = data.get("company", "")
+    title = data.get("title", "")
+
+    # Header
+    story.append(Paragraph(name, styles["name"]))
+    contact_parts = [p for p in [email, phone] if p]
+    if contact_parts:
+        story.append(Paragraph(" &bull; ".join(contact_parts), styles["contact"]))
+    story.append(Spacer(1, 6))
+    story.append(
+        HRFlowable(width="100%", thickness=1.2, color=colors.HexColor("#1a1a2e"), spaceAfter=14)
+    )
+    story.append(Paragraph(datetime.now().strftime("%B %d, %Y"), styles["date"]))
+    story.append(Spacer(1, 10))
+
+    # Title summary line
+    if title and company:
+        story.append(
+            Paragraph(
+                f"Re: <b>{_safe(title)}</b> at <b>{_safe(company)}</b>",
+                styles["body"],
+            )
+        )
+        story.append(Spacer(1, 10))
+
+    # Body
+    text = data.get("cover_letter", {})
+    if isinstance(text, dict):
+        text = text.get("text", "")
+    paragraphs = [p.strip() for p in str(text).split("\n\n") if p.strip()]
+    if not paragraphs:
+        paragraphs = [p.strip() for p in str(text).split("\n") if p.strip()]
+    for para in paragraphs:
+        story.append(Paragraph(para.replace("\n", " "), styles["body"]))
+        story.append(Spacer(1, 4))
+
+    story.append(Spacer(1, 18))
+    story.append(Paragraph("Best regards,", styles["body"]))
+    story.append(Spacer(1, 4))
+    story.append(Paragraph(name, styles["body"]))
+
+    return story
+
+
+def _build_contacts_page(data: dict, styles: dict) -> list:
+    """Return flowables for page 2 — contacts table."""
+    story: list = []
+    company = data.get("company", "")
+
+    story.append(
+        Paragraph(f"Key Contacts at {_safe(company)}", styles["title_large"])
+    )
+    story.append(Spacer(1, 4))
+    story.append(
+        HRFlowable(width="100%", thickness=1.2, color=colors.HexColor("#1a1a2e"), spaceAfter=14)
+    )
+
+    people = data.get("people", [])
+    if not people:
+        story.append(Paragraph("No contacts found.", styles["body"]))
+        return story
+
+    # Build table data
+    header = [
+        Paragraph("Name", styles["table_header"]),
+        Paragraph("Role", styles["table_header"]),
+        Paragraph("Category", styles["table_header"]),
+        Paragraph("LinkedIn", styles["table_header"]),
+        Paragraph("Email", styles["table_header"]),
+    ]
+    table_data = [header]
+
+    for p in people:
+        linkedin_url = p.get("profile_url", p.get("linkedin", ""))
+        linkedin_display = "View" if linkedin_url else ""
+        if linkedin_url:
+            linkedin_display = (
+                f'<link href="{linkedin_url}"><u>Profile</u></link>'
+            )
+        emails = p.get("emails", [])
+        email_str = emails[0] if emails else ""
+        table_data.append([
+            Paragraph(_safe(p.get("name", "")), styles["table_cell"]),
+            Paragraph(_safe(p.get("job_title", "")), styles["table_cell"]),
+            Paragraph(_safe(_pretty_category(p.get("category", ""))), styles["table_cell"]),
+            Paragraph(linkedin_display, styles["table_cell"]),
+            Paragraph(_safe(email_str), styles["table_cell"]),
+        ])
+
+    # Column widths — fit within printable area
+    avail = PAGE_WIDTH - 2 * MARGIN
+    col_widths = [
+        avail * 0.20,  # Name
+        avail * 0.25,  # Role
+        avail * 0.14,  # Category
+        avail * 0.15,  # LinkedIn
+        avail * 0.26,  # Email
+    ]
+
+    tbl = Table(table_data, colWidths=col_widths, repeatRows=1)
+    tbl.setStyle(TableStyle([
+        # Header row
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a1a2e")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+        ("TOPPADDING", (0, 0), (-1, 0), 8),
+        # Body rows
+        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+        ("FONTSIZE", (0, 1), (-1, -1), 8.5),
+        ("TOPPADDING", (0, 1), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 1), (-1, -1), 5),
+        # Alternating row colours
+        *[
+            ("BACKGROUND", (0, i), (-1, i), colors.HexColor("#f5f5f5"))
+            for i in range(1, len(table_data))
+            if i % 2 == 0
+        ],
+        # Grid
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cccccc")),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+
+    story.append(tbl)
+    return story
+
+
+def _build_interview_page(data: dict, styles: dict) -> list:
+    """Return flowables for page 3 — interview prep highlights."""
+    story: list = []
+
+    story.append(Paragraph("Interview Preparation", styles["title_large"]))
+    story.append(Spacer(1, 4))
+    story.append(
+        HRFlowable(width="100%", thickness=1.2, color=colors.HexColor("#1a1a2e"), spaceAfter=14)
+    )
+
+    prep = data.get("interview_prep", {})
+    if isinstance(prep, str):
+        # Fallback if stored as plain text
+        story.append(Paragraph(prep.replace("\n", "<br/>"), styles["body"]))
+        return story
+
+    # Technical questions
+    tech_qs = prep.get("technical_questions") or prep.get("technical", [])
+    if tech_qs:
+        story.append(Paragraph("Technical Questions", styles["heading"]))
+        if isinstance(tech_qs, list):
+            for q in tech_qs:
+                q_text = q if isinstance(q, str) else q.get("question", q.get("q", str(q)))
+                story.append(Paragraph(f"&bull; {_safe(str(q_text))}", styles["body"]))
+        else:
+            story.append(Paragraph(_safe(str(tech_qs)), styles["body"]))
+        story.append(Spacer(1, 8))
+
+    # Behavioral questions
+    behav_qs = prep.get("behavioral_questions") or prep.get("behavioral", [])
+    if behav_qs:
+        story.append(Paragraph("Behavioral Questions", styles["heading"]))
+        if isinstance(behav_qs, list):
+            for q in behav_qs:
+                q_text = q if isinstance(q, str) else q.get("question", q.get("q", str(q)))
+                story.append(Paragraph(f"&bull; {_safe(str(q_text))}", styles["body"]))
+        else:
+            story.append(Paragraph(_safe(str(behav_qs)), styles["body"]))
+        story.append(Spacer(1, 8))
+
+    # Questions to ask
+    ask_qs = prep.get("questions_to_ask") or prep.get("ask", [])
+    if ask_qs:
+        story.append(Paragraph("Questions to Ask the Interviewer", styles["heading"]))
+        if isinstance(ask_qs, list):
+            for q in ask_qs:
+                q_text = q if isinstance(q, str) else q.get("question", q.get("q", str(q)))
+                story.append(Paragraph(f"&bull; {_safe(str(q_text))}", styles["body"]))
+        else:
+            story.append(Paragraph(_safe(str(ask_qs)), styles["body"]))
+        story.append(Spacer(1, 8))
+
+    # Key talking points / tips
+    tips = prep.get("tips") or prep.get("talking_points") or prep.get("key_points", [])
+    if tips:
+        story.append(Paragraph("Key Talking Points", styles["heading"]))
+        if isinstance(tips, list):
+            for t in tips:
+                story.append(Paragraph(f"&bull; {_safe(str(t))}", styles["body"]))
+        else:
+            story.append(Paragraph(_safe(str(tips)), styles["body"]))
+        story.append(Spacer(1, 8))
+
+    # Company research summary (if present)
+    research = data.get("company_research", {})
+    if research:
+        story.append(Paragraph("Company Research Notes", styles["heading"]))
+        if isinstance(research, dict):
+            for key, val in research.items():
+                if val:
+                    label = key.replace("_", " ").title()
+                    if isinstance(val, list):
+                        val_str = ", ".join(str(v) for v in val)
+                    else:
+                        val_str = str(val)
+                    story.append(
+                        Paragraph(f"<b>{_safe(label)}:</b> {_safe(val_str)}", styles["body"])
+                    )
+        else:
+            story.append(Paragraph(_safe(str(research)), styles["body"]))
+
+    # If nothing was rendered, add a fallback
+    if len(story) <= 3:
+        story.append(Paragraph("No interview prep data available.", styles["body"]))
+
+    return story
+
+
+def generate_report_pdf(data: dict) -> bytes:
+    """
+    Build a multi-page report PDF:
+      Page 1 — Cover letter
+      Page 2 — Contacts table
+      Page 3 — Interview prep highlights
+    Returns the PDF as bytes.
+    """
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf,
+        pagesize=LETTER,
+        topMargin=MARGIN,
+        bottomMargin=MARGIN,
+        leftMargin=MARGIN,
+        rightMargin=MARGIN,
+    )
+
+    styles = _base_styles()
+    story: list = []
+
+    # Page 1 — Cover letter
+    story.extend(_build_cover_letter_page(data, styles))
+    story.append(PageBreak())
+
+    # Page 2 — Contacts table
+    story.extend(_build_contacts_page(data, styles))
+    story.append(PageBreak())
+
+    # Page 3 — Interview prep
+    story.extend(_build_interview_page(data, styles))
+
+    doc.build(story, onFirstPage=_footer, onLaterPages=_footer)
+    return buf.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# CSV Export
+# ---------------------------------------------------------------------------
+
+
+def generate_contacts_csv(people: list[dict], company: str) -> str:
+    """
+    Build a CSV string of contacts.
+    Columns: Name, Title, Category, LinkedIn, Email 1, Email 2, Connection Message
+    """
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([
+        "Name", "Title", "Category", "LinkedIn",
+        "Email 1", "Email 2", "Connection Message",
+    ])
+
+    for p in people:
+        emails = p.get("emails", [])
+        email1 = emails[0] if len(emails) > 0 else ""
+        email2 = emails[1] if len(emails) > 1 else ""
+        msgs = p.get("personalized_messages", {})
+        conn_msg = ""
+        if isinstance(msgs, dict):
+            # Support both singular "connection_request" and plural "connection_requests" (list)
+            cr = msgs.get("connection_request", {})
+            crs = msgs.get("connection_requests", [])
+            if crs and isinstance(crs, list):
+                first_cr = crs[0]
+                if isinstance(first_cr, dict):
+                    conn_msg = first_cr.get("text", "")
+                elif isinstance(first_cr, str):
+                    conn_msg = first_cr
+            elif isinstance(cr, dict):
+                conn_msg = cr.get("text", "")
+            elif isinstance(cr, str):
+                conn_msg = cr
+
+        writer.writerow([
+            p.get("name", ""),
+            p.get("job_title", ""),
+            _pretty_category(p.get("category", "")),
+            p.get("profile_url", p.get("linkedin", "")),
+            email1,
+            email2,
+            conn_msg,
+        ])
+
+    return buf.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# Utility helpers
+# ---------------------------------------------------------------------------
+
+
+def _safe(text: str) -> str:
+    """Escape XML-sensitive characters for ReportLab Paragraph markup."""
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+
+
+def _pretty_category(cat: str) -> str:
+    """Turn internal category keys into readable labels."""
+    mapping = {
+        "recruiter": "Recruiter",
+        "hiring_manager": "Hiring Manager",
+        "leadership": "Leadership",
+        "hr": "HR",
+        "team_member": "Team Member",
+        "peer": "Peer",
+    }
+    return mapping.get(cat, cat.replace("_", " ").title() if cat else "")
+
+
+# ---------------------------------------------------------------------------
+# Flask Blueprint
+# ---------------------------------------------------------------------------
+
+exporter_bp = Blueprint("exporter", __name__)
+
+
+@exporter_bp.route("/export/cover-letter/<job_id>")
+def export_cover_letter(job_id: str):
+    """Download the cover letter as a standalone PDF."""
+    data = load_result(job_id)
+    if data is None:
+        abort(404, description="Result not found or expired.")
+
+    cover_text = data.get("cover_letter", {})
+    if isinstance(cover_text, dict):
+        cover_text = cover_text.get("text", "")
+    cover_text = str(cover_text)
+    if not cover_text.strip():
+        abort(404, description="No cover letter available for this job.")
+
+    company = data.get("company", "Company")
+    title = data.get("title", "Position")
+
+    pdf_bytes = generate_cover_letter_pdf(
+        text=cover_text,
+        company=company,
+        title=title,
+        name=data.get("name", "Celina"),
+        email=data.get("email", ""),
+        phone=data.get("phone", ""),
+    )
+
+    filename = f"Cover_Letter_{company.replace(' ', '_')}_{title.replace(' ', '_')}.pdf"
+    return Response(
+        pdf_bytes,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=\"{filename}\""},
+    )
+
+
+@exporter_bp.route("/export/report/<job_id>")
+def export_report(job_id: str):
+    """Download the full multi-page report as a PDF."""
+    data = load_result(job_id)
+    if data is None:
+        abort(404, description="Result not found or expired.")
+
+    pdf_bytes = generate_report_pdf(data)
+    company = data.get("company", "Company")
+    title = data.get("title", "Position")
+    filename = f"Report_{company.replace(' ', '_')}_{title.replace(' ', '_')}.pdf"
+
+    return Response(
+        pdf_bytes,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=\"{filename}\""},
+    )
+
+
+@exporter_bp.route("/export/contacts/<job_id>")
+def export_contacts(job_id: str):
+    """Download contacts as a CSV file."""
+    data = load_result(job_id)
+    if data is None:
+        abort(404, description="Result not found or expired.")
+
+    people = data.get("people", [])
+    company = data.get("company", "Company")
+    csv_str = generate_contacts_csv(people, company)
+    filename = f"Contacts_{company.replace(' ', '_')}.csv"
+
+    return Response(
+        csv_str,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=\"{filename}\""},
+    )
+
+
+@exporter_bp.route("/export/json/<job_id>")
+def export_json(job_id: str):
+    """Download the full pipeline result as a JSON file."""
+    data = load_result(job_id)
+    if data is None:
+        abort(404, description="Result not found or expired.")
+
+    company = data.get("company", "Company")
+    title = data.get("title", "Position")
+    filename = f"Result_{company.replace(' ', '_')}_{title.replace(' ', '_')}.json"
+
+    return Response(
+        json.dumps(data, indent=2, default=str),
+        mimetype="application/json",
+        headers={"Content-Disposition": f"attachment; filename=\"{filename}\""},
+    )

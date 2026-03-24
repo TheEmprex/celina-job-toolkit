@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Application Tracker — Celina's Job Toolkit</title>
+<link rel="stylesheet" href="/static/style.css">
+<style>
+/* ===== Tracker-specific styles ===== */
+
+.tracker-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px 20px 80px;
+}
+
+/* ---- Top bar ---- */
+.top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.back-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.88rem;
+    font-weight: 500;
+    transition: color var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.back-link:hover { color: var(--accent); }
+.tracker-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--teal) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* ---- Search ---- */
+.search-box {
+    padding: 10px 16px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.88rem;
+    outline: none;
+    width: 240px;
+    max-width: none;
+    margin: 0;
+    text-align: left;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+.search-box:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.search-box::placeholder { color: var(--text-dim); }
+
+/* ---- Add button ---- */
+.btn-add {
+    padding: 10px 20px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: white;
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+}
+.btn-add:hover {
+    background: linear-gradient(135deg, var(--accent-hover), #9b6ff6);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(108,99,255,0.3);
+}
+
+/* ---- Stats bar ---- */
+.stats-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+}
+.stat-card {
+    flex: 1;
+    min-width: 140px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    text-align: center;
+}
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+.stat-value.purple { color: var(--accent); }
+.stat-value.teal { color: var(--teal); }
+.stat-value.warning { color: var(--warning); }
+.stat-value.error { color: var(--error); }
+.stat-label {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+/* ---- Kanban board ---- */
+.kanban {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    padding-bottom: 16px;
+    min-height: 420px;
+}
+.kanban-col {
+    flex: 1;
+    min-width: 230px;
+    max-width: 320px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+}
+.kanban-col.drag-over {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow), inset 0 0 20px var(--accent-glow);
+}
+.col-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.col-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+.col-dot.applied { background: var(--accent); }
+.col-dot.contacted { background: #3b82f6; }
+.col-dot.interviewing { background: var(--warning); }
+.col-dot.offered { background: var(--teal); }
+.col-dot.rejected { background: var(--error); }
+
+.col-count {
+    background: rgba(255,255,255,0.06);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+.col-cards {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+    min-height: 60px;
+}
+
+/* ---- Kanban cards ---- */
+.k-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    margin-bottom: 10px;
+    cursor: grab;
+    transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+    user-select: none;
+}
+.k-card:hover {
+    border-color: rgba(108,99,255,0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.k-card.dragging {
+    opacity: 0.5;
+    transform: rotate(2deg);
+}
+.k-card-company {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.k-card-title {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.k-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+}
+.k-card-contacts {
+    background: var(--accent-glow);
+    color: var(--accent);
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.68rem;
+}
+
+/* ---- Modal overlay ---- */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 900;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 60px;
+    overflow-y: auto;
+}
+.modal-overlay.hidden { display: none; }
+.modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    width: 720px;
+    max-width: 95vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+    animation: fadeIn 0.2s ease;
+    margin-bottom: 60px;
+}
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+}
+.modal-header h2 {
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all var(--transition);
+    line-height: 1;
+}
+.modal-close:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+
+.modal-body { padding: 24px; }
+
+/* ---- Form fields ---- */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+.form-grid .full { grid-column: 1 / -1; }
+
+.field label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 5px;
+}
+.field input,
+.field select,
+.field textarea {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color var(--transition);
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+    border-color: var(--border-focus);
+}
+.field select { cursor: pointer; }
+.field select option { background: var(--bg-card); color: var(--text); }
+.field textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+}
+.btn-secondary {
+    padding: 10px 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+.btn-secondary:hover { border-color: var(--text-muted); color: var(--text); }
+.btn-danger {
+    padding: 10px 20px;
+    border: 1px solid rgba(255,107,107,0.3);
+    border-radius: var(--radius-sm);
+    background: rgba(255,107,107,0.08);
+    color: var(--error);
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+.btn-danger:hover { background: rgba(255,107,107,0.15); border-color: var(--error); }
+.btn-primary {
+    padding: 10px 24px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: white;
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+.btn-primary:hover { background: linear-gradient(135deg, var(--accent-hover), #9b6ff6); }
+
+/* ---- Detail view (expanded card) ---- */
+.detail-section {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+}
+.detail-section h3 {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 12px;
+}
+
+/* ---- Contacts table ---- */
+.contacts-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+.contacts-table th {
+    text-align: left;
+    padding: 8px 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border-bottom: 1px solid var(--border);
+}
+.contacts-table td {
+    padding: 10px 10px;
+    border-bottom: 1px solid rgba(30,30,46,0.5);
+    vertical-align: middle;
+}
+.contacts-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+.contact-name { font-weight: 600; color: var(--text); }
+.contact-title-text { font-size: 0.75rem; color: var(--text-muted); }
+.contact-email {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.75rem;
+    color: var(--teal);
+    cursor: pointer;
+    transition: opacity var(--transition);
+}
+.contact-email:hover { opacity: 0.7; }
+
+.btn-icon {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all var(--transition);
+    font-family: inherit;
+}
+.btn-icon:hover { border-color: var(--accent); color: var(--accent); }
+.btn-icon.active {
+    border-color: var(--teal);
+    color: var(--teal);
+    background: var(--teal-glow);
+}
+
+.linkedin-link {
+    color: #0a66c2;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.78rem;
+}
+.linkedin-link:hover { text-decoration: underline; }
+
+.follow-up-input {
+    padding: 4px 8px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.78rem;
+    width: 120px;
+    outline: none;
+}
+.follow-up-input:focus { border-color: var(--border-focus); }
+
+/* Cover letter preview */
+.cover-preview {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    white-space: pre-wrap;
+    font-size: 0.85rem;
+    line-height: 1.7;
+    max-height: 200px;
+    overflow-y: auto;
+    color: var(--text-muted);
+}
+
+/* ---- Toast ---- */
+.toast-tracker {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 12px 22px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 500;
+    z-index: 1100;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    background: var(--teal-glow);
+    border: 1px solid rgba(0,212,170,0.3);
+    color: var(--teal);
+}
+.toast-tracker.error {
+    background: rgba(255,107,107,0.15);
+    border: 1px solid rgba(255,107,107,0.3);
+    color: var(--error);
+}
+.toast-tracker.show { transform: translateY(0); opacity: 1; }
+
+/* ---- Empty state ---- */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+    font-size: 0.88rem;
+}
+.empty-state .empty-icon {
+    font-size: 2.4rem;
+    margin-bottom: 12px;
+    opacity: 0.4;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 900px) {
+    .kanban {
+        flex-direction: column;
+    }
+    .kanban-col {
+        max-width: 100%;
+        min-width: 100%;
+    }
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    .stats-bar {
+        flex-wrap: wrap;
+    }
+    .stat-card {
+        min-width: 100px;
+    }
+}
+@media (max-width: 640px) {
+    .tracker-container { padding: 14px 10px 60px; }
+    .top-bar { flex-direction: column; align-items: flex-start; }
+    .top-bar-right { width: 100%; flex-direction: column; }
+    .search-box { width: 100%; }
+    .btn-add { width: 100%; text-align: center; }
+    .modal { max-height: 95vh; }
+    .contacts-table { font-size: 0.75rem; }
+    .contacts-table th,
+    .contacts-table td { padding: 6px 6px; }
+}
+</style>
+</head>
+<body>
+
+<div class="tracker-container">
+    <!-- Top bar -->
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <a href="/" class="back-link">&larr; Back to Toolkit</a>
+            <span class="tracker-title">Application Tracker</span>
+        </div>
+        <div class="top-bar-right">
+            <input type="text" class="search-box" id="searchBox" placeholder="Search companies, titles...">
+            <button class="btn-add" id="btnAdd">+ Add Application</button>
+        </div>
+    </div>
+
+    <!-- Stats bar -->
+    <div class="stats-bar" id="statsBar">
+        <div class="stat-card">
+            <div class="stat-value purple" id="statTotal">0</div>
+            <div class="stat-label">Total Apps</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value teal" id="statContacted">0</div>
+            <div class="stat-label">Contacted</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value warning" id="statInterviewing">0</div>
+            <div class="stat-label">Interviewing</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value teal" id="statContacts">0</div>
+            <div class="stat-label">Contacts Made</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value purple" id="statResponse">0%</div>
+            <div class="stat-label">Response Rate</div>
+        </div>
+    </div>
+
+    <!-- Kanban board -->
+    <div class="kanban" id="kanban">
+        <div class="kanban-col" data-status="applied">
+            <div class="col-header">
+                <span><span class="col-dot applied"></span>Applied</span>
+                <span class="col-count" data-count>0</span>
+            </div>
+            <div class="col-cards" data-cards></div>
+        </div>
+        <div class="kanban-col" data-status="contacted">
+            <div class="col-header">
+                <span><span class="col-dot contacted"></span>Contacted</span>
+                <span class="col-count" data-count>0</span>
+            </div>
+            <div class="col-cards" data-cards></div>
+        </div>
+        <div class="kanban-col" data-status="interviewing">
+            <div class="col-header">
+                <span><span class="col-dot interviewing"></span>Interviewing</span>
+                <span class="col-count" data-count>0</span>
+            </div>
+            <div class="col-cards" data-cards></div>
+        </div>
+        <div class="kanban-col" data-status="offered">
+            <div class="col-header">
+                <span><span class="col-dot offered"></span>Offered</span>
+                <span class="col-count" data-count>0</span>
+            </div>
+            <div class="col-cards" data-cards></div>
+        </div>
+        <div class="kanban-col" data-status="rejected">
+            <div class="col-header">
+                <span><span class="col-dot rejected"></span>Rejected / Ghosted</span>
+                <span class="col-count" data-count>0</span>
+            </div>
+            <div class="col-cards" data-cards></div>
+        </div>
+    </div>
+</div>
+
+<!-- Create / Edit modal -->
+<div class="modal-overlay hidden" id="modalOverlay">
+    <div class="modal" id="modal">
+        <div class="modal-header">
+            <h2 id="modalTitle">Add Application</h2>
+            <button class="modal-close" id="modalClose">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Filled dynamically -->
+        </div>
+        <div class="modal-actions" id="modalActions">
+            <!-- Filled dynamically -->
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-tracker" id="toast"></div>
+
+<script>
+(function() {
+    "use strict";
+
+    // ---- State ----
+    let applications = [];
+    let currentFilter = "";
+    let expandedAppId = null;
+
+    // ---- DOM refs ----
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => document.querySelectorAll(sel);
+
+    const searchBox = $("#searchBox");
+    const btnAdd = $("#btnAdd");
+    const kanban = $("#kanban");
+    const modalOverlay = $("#modalOverlay");
+    const modal = $("#modal");
+    const modalTitle = $("#modalTitle");
+    const modalBody = $("#modalBody");
+    const modalActions = $("#modalActions");
+    const modalClose = $("#modalClose");
+    const toastEl = $("#toast");
+
+    // ---- Toast ----
+    let toastTimer = null;
+    function toast(msg, isError) {
+        toastEl.textContent = msg;
+        toastEl.className = "toast-tracker" + (isError ? " error" : "") + " show";
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { toastEl.classList.remove("show"); }, 2500);
+    }
+
+    // ---- API helpers ----
+    async function api(url, opts = {}) {
+        const defaults = { headers: { "Content-Type": "application/json" } };
+        const res = await fetch(url, { ...defaults, ...opts });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Request failed");
+        return data;
+    }
+
+    // ---- Load data ----
+    async function loadAll() {
+        try {
+            const [apps, stats] = await Promise.all([
+                api("/api/applications"),
+                api("/api/stats"),
+            ]);
+            applications = apps;
+            renderStats(stats);
+            renderKanban();
+        } catch (e) {
+            toast("Failed to load data: " + e.message, true);
+        }
+    }
+
+    // ---- Stats ----
+    function renderStats(stats) {
+        $("#statTotal").textContent = stats.total_applications;
+        $("#statContacted").textContent = stats.by_status.contacted || 0;
+        $("#statInterviewing").textContent = stats.by_status.interviewing || 0;
+        $("#statContacts").textContent = stats.contacts_messaged;
+        $("#statResponse").textContent = stats.response_rate + "%";
+    }
+
+    // ---- Kanban rendering ----
+    const STATUS_ORDER = ["applied", "contacted", "interviewing", "offered", "rejected"];
+
+    function renderKanban() {
+        const filtered = applications.filter(app => {
+            if (!currentFilter) return true;
+            const q = currentFilter.toLowerCase();
+            return (app.company || "").toLowerCase().includes(q)
+                || (app.title || "").toLowerCase().includes(q)
+                || (app.department || "").toLowerCase().includes(q);
+        });
+
+        STATUS_ORDER.forEach(status => {
+            const col = kanban.querySelector(`.kanban-col[data-status="${status}"]`);
+            const cardsEl = col.querySelector("[data-cards]");
+            const countEl = col.querySelector("[data-count]");
+            const items = filtered.filter(a => a.status === status);
+            countEl.textContent = items.length;
+
+            cardsEl.innerHTML = "";
+            if (items.length === 0) {
+                cardsEl.innerHTML = `<div class="empty-state"><div class="empty-icon">---</div><div>No applications</div></div>`;
+                return;
+            }
+            items.forEach(app => {
+                const card = document.createElement("div");
+                card.className = "k-card";
+                card.setAttribute("draggable", "true");
+                card.dataset.id = app.id;
+                const dateStr = app.date_applied || "";
+                const contactsBadge = app.contact_count
+                    ? `<span class="k-card-contacts">${app.contact_count} contact${app.contact_count > 1 ? "s" : ""}</span>`
+                    : "";
+                card.innerHTML = `
+                    <div class="k-card-company">${esc(app.company)}</div>
+                    <div class="k-card-title">${esc(app.title || "No title")}</div>
+                    <div class="k-card-footer">
+                        <span>${esc(dateStr)}</span>
+                        ${contactsBadge}
+                    </div>
+                `;
+                // Drag events
+                card.addEventListener("dragstart", onDragStart);
+                card.addEventListener("dragend", onDragEnd);
+                // Click to expand
+                card.addEventListener("click", () => openDetailModal(app.id));
+                cardsEl.appendChild(card);
+            });
+        });
+    }
+
+    function esc(str) {
+        const d = document.createElement("div");
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    // ---- Drag and Drop ----
+    let draggedId = null;
+
+    function onDragStart(e) {
+        draggedId = parseInt(e.currentTarget.dataset.id);
+        e.currentTarget.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", draggedId);
+    }
+    function onDragEnd(e) {
+        e.currentTarget.classList.remove("dragging");
+        $$(".kanban-col").forEach(c => c.classList.remove("drag-over"));
+        draggedId = null;
+    }
+
+    // Column drop targets
+    $$(".kanban-col").forEach(col => {
+        col.addEventListener("dragover", e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            col.classList.add("drag-over");
+        });
+        col.addEventListener("dragleave", e => {
+            // Only remove highlight when actually leaving the column, not entering a child
+            if (!col.contains(e.relatedTarget)) {
+                col.classList.remove("drag-over");
+            }
+        });
+        col.addEventListener("drop", async e => {
+            e.preventDefault();
+            col.classList.remove("drag-over");
+            const id = parseInt(e.dataTransfer.getData("text/plain"));
+            const newStatus = col.dataset.status;
+            if (!id || !newStatus) return;
+            try {
+                const updated = await api(`/api/applications/${id}`, {
+                    method: "PUT",
+                    body: JSON.stringify({ status: newStatus }),
+                });
+                const idx = applications.findIndex(a => a.id === id);
+                if (idx >= 0) applications[idx] = updated;
+                renderKanban();
+                refreshStats();
+                toast(`Moved to ${newStatus}`);
+            } catch (err) {
+                toast("Failed to update: " + err.message, true);
+            }
+        });
+    });
+
+    async function refreshStats() {
+        try {
+            const stats = await api("/api/stats");
+            renderStats(stats);
+        } catch (_) {}
+    }
+
+    // ---- Search ----
+    searchBox.addEventListener("input", e => {
+        currentFilter = e.target.value;
+        renderKanban();
+    });
+
+    // ---- Modal helpers ----
+    function openModal() { modalOverlay.classList.remove("hidden"); }
+    function closeModal() { modalOverlay.classList.add("hidden"); expandedAppId = null; }
+    modalClose.addEventListener("click", closeModal);
+    modalOverlay.addEventListener("click", e => {
+        if (e.target === modalOverlay) closeModal();
+    });
+    document.addEventListener("keydown", e => {
+        if (e.key === "Escape") closeModal();
+    });
+
+    // ---- Add application ----
+    btnAdd.addEventListener("click", () => openCreateModal());
+
+    function openCreateModal() {
+        modalTitle.textContent = "Add Application";
+        modalBody.innerHTML = `
+            <div class="form-grid">
+                <div class="field"><label>Company *</label><input id="fCompany" placeholder="e.g. Google"></div>
+                <div class="field"><label>Job Title</label><input id="fTitle" placeholder="e.g. Product Manager"></div>
+                <div class="field"><label>Department</label><input id="fDept" placeholder="e.g. Engineering"></div>
+                <div class="field"><label>Status</label>
+                    <select id="fStatus">
+                        <option value="applied">Applied</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="interviewing">Interviewing</option>
+                        <option value="offered">Offered</option>
+                        <option value="rejected">Rejected / Ghosted</option>
+                    </select>
+                </div>
+                <div class="field"><label>URL</label><input id="fUrl" placeholder="https://..."></div>
+                <div class="field"><label>Date Applied</label><input id="fDate" type="date"></div>
+                <div class="field full"><label>Notes</label><textarea id="fNotes" rows="3" placeholder="Any notes..."></textarea></div>
+            </div>
+        `;
+        modalActions.innerHTML = `
+            <button class="btn-secondary" id="btnCancel">Cancel</button>
+            <button class="btn-primary" id="btnSave">Save</button>
+        `;
+        $("#btnCancel").addEventListener("click", closeModal);
+        $("#btnSave").addEventListener("click", saveNewApp);
+
+        // Default date to today
+        const today = new Date().toISOString().slice(0, 10);
+        $("#fDate").value = today;
+
+        openModal();
+        setTimeout(() => $("#fCompany").focus(), 100);
+    }
+
+    async function saveNewApp() {
+        const company = ($("#fCompany").value || "").trim();
+        if (!company) { toast("Company is required", true); return; }
+        const payload = {
+            company,
+            title: ($("#fTitle").value || "").trim(),
+            department: ($("#fDept").value || "").trim(),
+            status: $("#fStatus").value,
+            url: ($("#fUrl").value || "").trim(),
+            date_applied: ($("#fDate").value || "").trim(),
+            notes: ($("#fNotes").value || "").trim(),
+        };
+        try {
+            const app = await api("/api/applications", {
+                method: "POST",
+                body: JSON.stringify(payload),
+            });
+            applications.unshift(app);
+            renderKanban();
+            refreshStats();
+            closeModal();
+            toast("Application added!");
+        } catch (err) {
+            toast("Failed: " + err.message, true);
+        }
+    }
+
+    // ---- Detail / edit modal ----
+    async function openDetailModal(appId) {
+        expandedAppId = appId;
+        const app = applications.find(a => a.id === appId);
+        if (!app) return;
+
+        let contacts = [];
+        try { contacts = await api(`/api/applications/${appId}/contacts`); } catch (_) {}
+
+        modalTitle.textContent = `${app.company} — ${app.title || "No title"}`;
+        modalBody.innerHTML = buildDetailHTML(app, contacts);
+        modalActions.innerHTML = `
+            <button class="btn-danger" id="btnDelete">Delete</button>
+            <button class="btn-secondary" id="btnCancel">Close</button>
+            <button class="btn-primary" id="btnSaveEdit">Save Changes</button>
+        `;
+        $("#btnCancel").addEventListener("click", closeModal);
+        $("#btnDelete").addEventListener("click", () => confirmDelete(appId));
+        $("#btnSaveEdit").addEventListener("click", () => saveEditApp(appId));
+
+        // Wire up contact interactions
+        wireContactEvents(contacts);
+
+        openModal();
+    }
+
+    function buildDetailHTML(app, contacts) {
+        const statusOpts = STATUS_ORDER.map(s => {
+            const label = s === "rejected" ? "Rejected / Ghosted" : s.charAt(0).toUpperCase() + s.slice(1);
+            const sel = app.status === s ? "selected" : "";
+            return `<option value="${s}" ${sel}>${label}</option>`;
+        }).join("");
+
+        let contactsHTML = "";
+        if (contacts.length > 0) {
+            const rows = contacts.map(c => {
+                const catClass = (c.category || "").replace(/ /g, "_");
+                const emailCell = c.email
+                    ? `<span class="contact-email" data-email="${esc(c.email)}" title="Click to copy">${esc(c.email)}</span>`
+                    : '<span style="color:var(--text-dim)">--</span>';
+                const linkedinCell = c.linkedin_url
+                    ? `<a class="linkedin-link" href="${esc(c.linkedin_url)}" target="_blank" rel="noopener">Profile</a>`
+                    : '--';
+                const contactedClass = c.message_sent ? " active" : "";
+                const contactedLabel = c.message_sent ? "Sent" : "Mark Sent";
+                return `
+                    <tr data-contact-id="${c.id}">
+                        <td>
+                            <div class="contact-name">${esc(c.name)}</div>
+                            <div class="contact-title-text">${esc(c.job_title || "")}</div>
+                        </td>
+                        <td><span class="category-badge ${catClass}">${esc(c.category || "other")}</span></td>
+                        <td>${emailCell}</td>
+                        <td>${linkedinCell}</td>
+                        <td><button class="btn-icon toggle-contacted${contactedClass}" data-cid="${c.id}" data-sent="${c.message_sent ? 1 : 0}">${contactedLabel}</button></td>
+                        <td><input type="date" class="follow-up-input" data-cid="${c.id}" value="${esc(c.follow_up_date || "")}"></td>
+                    </tr>
+                `;
+            }).join("");
+            contactsHTML = `
+                <div class="detail-section">
+                    <h3>Contacts (${contacts.length})</h3>
+                    <div style="overflow-x:auto">
+                        <table class="contacts-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Category</th>
+                                    <th>Email</th>
+                                    <th>LinkedIn</th>
+                                    <th>Message</th>
+                                    <th>Follow-up</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        } else {
+            contactsHTML = `
+                <div class="detail-section">
+                    <h3>Contacts</h3>
+                    <div style="color:var(--text-dim); font-size:0.85rem;">No contacts yet. Run the pipeline to find people.</div>
+                </div>
+            `;
+        }
+
+        const coverHTML = app.cover_letter
+            ? `<div class="detail-section"><h3>Cover Letter</h3><div class="cover-preview">${esc(app.cover_letter)}</div></div>`
+            : "";
+
+        return `
+            <div class="form-grid">
+                <div class="field"><label>Company</label><input id="eCompany" value="${esc(app.company)}"></div>
+                <div class="field"><label>Job Title</label><input id="eTitle" value="${esc(app.title || "")}"></div>
+                <div class="field"><label>Department</label><input id="eDept" value="${esc(app.department || "")}"></div>
+                <div class="field"><label>Status</label><select id="eStatus">${statusOpts}</select></div>
+                <div class="field"><label>URL</label><input id="eUrl" value="${esc(app.url || "")}"></div>
+                <div class="field"><label>Date Applied</label><input id="eDate" type="date" value="${esc(app.date_applied || "")}"></div>
+                <div class="field full"><label>Notes</label><textarea id="eNotes" rows="3">${esc(app.notes || "")}</textarea></div>
+            </div>
+            ${contactsHTML}
+            ${coverHTML}
+        `;
+    }
+
+    function wireContactEvents(contacts) {
+        // Copy email on click
+        modalBody.querySelectorAll(".contact-email").forEach(el => {
+            el.addEventListener("click", e => {
+                e.stopPropagation();
+                const email = el.dataset.email;
+                navigator.clipboard.writeText(email).then(() => {
+                    toast("Email copied!");
+                }).catch(() => {
+                    // Fallback
+                    const ta = document.createElement("textarea");
+                    ta.value = email;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(ta);
+                    toast("Email copied!");
+                });
+            });
+        });
+
+        // Toggle contacted
+        modalBody.querySelectorAll(".toggle-contacted").forEach(btn => {
+            btn.addEventListener("click", async e => {
+                e.stopPropagation();
+                const cid = parseInt(btn.dataset.cid);
+                const wasSent = parseInt(btn.dataset.sent);
+                const newVal = wasSent ? 0 : 1;
+                try {
+                    await api(`/api/contacts/${cid}`, {
+                        method: "PUT",
+                        body: JSON.stringify({
+                            message_sent: newVal,
+                            date_contacted: newVal ? new Date().toISOString().slice(0, 10) : "",
+                        }),
+                    });
+                    btn.dataset.sent = newVal;
+                    btn.textContent = newVal ? "Sent" : "Mark Sent";
+                    btn.classList.toggle("active", !!newVal);
+                    refreshStats();
+                } catch (err) {
+                    toast("Update failed", true);
+                }
+            });
+        });
+
+        // Follow-up date change
+        modalBody.querySelectorAll(".follow-up-input").forEach(input => {
+            input.addEventListener("change", async e => {
+                const cid = parseInt(input.dataset.cid);
+                try {
+                    await api(`/api/contacts/${cid}`, {
+                        method: "PUT",
+                        body: JSON.stringify({ follow_up_date: input.value }),
+                    });
+                    toast("Follow-up date saved");
+                } catch (err) {
+                    toast("Update failed", true);
+                }
+            });
+        });
+    }
+
+    async function saveEditApp(appId) {
+        const payload = {
+            company: ($("#eCompany").value || "").trim(),
+            title: ($("#eTitle").value || "").trim(),
+            department: ($("#eDept").value || "").trim(),
+            status: $("#eStatus").value,
+            url: ($("#eUrl").value || "").trim(),
+            date_applied: ($("#eDate").value || "").trim(),
+            notes: ($("#eNotes").value || "").trim(),
+        };
+        if (!payload.company) { toast("Company is required", true); return; }
+        try {
+            const updated = await api(`/api/applications/${appId}`, {
+                method: "PUT",
+                body: JSON.stringify(payload),
+            });
+            const idx = applications.findIndex(a => a.id === appId);
+            if (idx >= 0) applications[idx] = updated;
+            renderKanban();
+            refreshStats();
+            closeModal();
+            toast("Application updated!");
+        } catch (err) {
+            toast("Failed: " + err.message, true);
+        }
+    }
+
+    async function confirmDelete(appId) {
+        if (!confirm("Delete this application and all its contacts?")) return;
+        try {
+            await api(`/api/applications/${appId}`, { method: "DELETE" });
+            applications = applications.filter(a => a.id !== appId);
+            renderKanban();
+            refreshStats();
+            closeModal();
+            toast("Application deleted");
+        } catch (err) {
+            toast("Failed: " + err.message, true);
+        }
+    }
+
+    // ---- Init ----
+    loadAll();
+})();
+</script>
+</body>
+</html>
